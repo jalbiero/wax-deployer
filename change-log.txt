@@ -1,0 +1,40 @@
+********************************************************************************
+                     WAX deployer changelog history
+********************************************************************************
+
+
+
+--------------------------------------------------------------------------------
+Version 1.0.7.0, 21/09/2018
+
+  - New respository for this script (moved from wax/wax-testnet/deployment)
+  - New versioning schema:
+      + 4 digits: the first 3 are aligned with the EOS version used (in this
+        case for example, EOS 1.0.7), the last one is reserved for changes in
+        this script.
+      + A branch for the first 3 digits will be created and maintained
+      + A tag version with the 4 digits will be used.
+  - Now, the installation log file is not overwritten (the content of a new
+    installation is added to the current log)
+  - The suggested postfix has been changed from 'dummy' to the current user.
+  - Now the main menu is in a while loop, it will presented again after an
+    action.
+
+
+***********************************************
+Ancient versions from the original repository
+***********************************************
+
+--------------------------------------------------------------------------------
+Version 1.1, 18/09/2018
+
+  - Add support for metrics_host/metrics_port in wax-rng-oracle
+  - Add support for metrics_host/metrics_port in wax-connect-api
+  - Fix a problem when keys.csv was copied to destination
+  - Fix bug when deploying RNG cases
+
+
+--------------------------------------------------------------------------------
+Version 1.0, 14/09/2018
+
+  - First release
