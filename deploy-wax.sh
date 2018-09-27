@@ -24,7 +24,7 @@
 #   TODO Add a silent mode installation
 #
 
-SCRIPT_VERSION="1.0.7.0"
+SCRIPT_VERSION="1.0.7.1"
 
 
 ################################################################################
@@ -367,6 +367,12 @@ function deploy_connect_api() {
     local METRICS_PORT
     read -e -i "8125" -p "Metrics port (ENTER to accept the suggested): " METRICS_PORT
 
+    local INFLUX_DB
+    read -e -i "telegraf" -p "Influx database (ENTER to accept the suggested): " INFLUX_DB
+
+    local INFLUX_HOST
+    read -e -i "localhost" -p "Influx database (ENTER to accept the suggested): " INFLUX_HOST
+
     local PRODUCTION_OPTIONS
 
     # "production" is a special case
@@ -390,7 +396,7 @@ function deploy_connect_api() {
     popd > /dev/null
 
     get_private_key "wax.connect"
-    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT $PRODUCTION_OPTIONS"
+    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST $PRODUCTION_OPTIONS"
 }
 
 
@@ -409,7 +415,13 @@ function deploy_oracle() {
     aws_get_load_balancer_attribute "wax-connect-api-lb-$WAX_ENV_POSTFIX_FULL" "DNSName"
     read -e -i "$RESULT" -p "Connect API Load Balancer address (ENTER accept the suggested): " CONNECT_API_LB
 
-    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT"
+    local INFLUX_DB
+    read -e -i "telegraf" -p "Influx database (ENTER to accept the suggested): " INFLUX_DB
+
+    local INFLUX_HOST
+    read -e -i "localhost" -p "Influx database (ENTER to accept the suggested): " INFLUX_HOST
+
+    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
 }
 
 
