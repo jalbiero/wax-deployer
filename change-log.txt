@@ -5,6 +5,11 @@
 
 
 --------------------------------------------------------------------------------
+Version 1.0.7.1, 27/09/2018
+  - Add support for influxdb_database/influxdb_host in wax-rng-oracle
+  - Add support for influxdb_database/influxdb_host in wax-connect-api
+
+--------------------------------------------------------------------------------
 Version 1.0.7.0, 21/09/2018
 
   - New respository for this script (moved from wax/wax-testnet/deployment)
