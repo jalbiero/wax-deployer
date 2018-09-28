@@ -24,7 +24,7 @@
 #   TODO Add a silent mode installation
 #
 
-SCRIPT_VERSION="1.0.7.1"
+SCRIPT_VERSION="1.0.7.2"
 
 
 ################################################################################
@@ -91,10 +91,11 @@ function check_command() {
     fi
 
     if [ ! -z $2 ] ; then
-        $1 --version | grep $2 > /dev/null
+        local REQ_VER=$($1 --version)
+        echo $REQ_VER | grep $2 > /dev/null
 
         if [ ! $? == 0 ] ; then
-            echo "Wrong version for '$1' (required $2), aborting"
+            echo "Wrong version for '$1' (required $2, got '$REQ_VER'), aborting"
             exit 2
         fi
     fi
@@ -268,9 +269,19 @@ function get_environment() {
 function check_requirements() {
     echo "Checking requirements..."
 
+    # TODO Add this "path" validation inside "check_command" function
+    # Validate node installation
+    which node | grep "/usr/bin" > /dev/null
+    if [ $? == 0 ]; then
+        echo "Your node.js installation is not recommended"
+        echo "Please use https://github.com/creationix/nvm#install-script to install it"
+        exit 8
+    fi
+
+    check_command npm
+    check_command node "8.9"
     check_command terraform "0.10.7"
     check_command ansible
-    check_command npm
     check_command python3
     check_command cleos
     check_command make
@@ -280,6 +291,7 @@ function check_requirements() {
     check_command git
     check_command dig
     check_command tee
+    check_command sed
 
     # TODO Add other requirements
 
@@ -356,6 +368,36 @@ function deploy_testnet() {
 }
 
 
+function deploy_block_explorer() {
+    echo -e "\nDeploying Block Explorer..."
+    download_component "wax-tracker"
+    cd $WAX_WORK_DIR/wax-tracker
+
+    # "production" is a special case
+    if [ "$WAX_ENV" == "production" ]; then
+
+        local PRODUCTION_CHAIN_ID="cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f"
+        local CHAIN_ID
+
+        read -e -i $PRODUCTION_CHAIN_ID -p "Production EOS Chain Id (ENTER to accept the suggested): " CHAIN_ID
+
+        PRODUCTION_OPTIONS="chain_id=$CHAIN_ID"
+    fi
+
+    local NODE_NAME="eos-node-0-$WAX_ENV_POSTFIX_FULL"
+    aws_get_instance_attribute $NODE_NAME  "PrivateIpAddress"
+
+    if [ -z $RESULT ]; then
+        echo "Cannot find '$NODE_NAME' instance on AWS."
+        echo "You must deploy the testnet before trying to deploy the block explorer"
+        exit 7
+    fi
+
+    abort_if_fail "npm install"
+    abort_if_fail "make deploy environment=$WAX_ENV env_postfix=$WAX_ENV_POSTFIX eos_peer_ip=$RESULT"
+}
+
+
 function deploy_connect_api() {
     echo -e "\nDeploying Connect API..."
     download_component "wax-connect-api"
@@ -381,22 +423,25 @@ function deploy_connect_api() {
         local PRODUCTION_CHAIN_ID="2bfabaf12493e3196867e5afe2cf9c20372a24329f13495eee8c9d957638ba40"
         local CHAIN_ID
 
-        read -e -i $PRODUCTION_CHAIN_ID -p "EOS chain Id (ENTER to accept the suggested): " CHAIN_ID
+        read -e -i $PRODUCTION_CHAIN_ID -p "Production EOS Chain Id (ENTER to accept the suggested): " CHAIN_ID
 
         PRODUCTION_OPTIONS="chain_id=$CHAIN_ID"
     fi
 
-    local TEMPLATES_DIR=$WAX_WORK_DIR/wax-testnet/ansible/roles/eos-node/templates
+    # TODO Get IPs from all nodes, wax-connect-api now support a list of IP in "eos_peer_ip"
+    local NODE_NAME="eos-node-0-$WAX_ENV_POSTFIX_FULL"
+    aws_get_instance_attribute $NODE_NAME  "PrivateIpAddress"
 
-    # Obtain the peer IP from the name of one of the generated config.ini files (IPn_config.ini)
-    # TODO Remove the nasty hack (cd $TEMPLATES_DIR) to avoid 'ls' listing files with full path
-    pushd . > /dev/null
-    cd $TEMPLATES_DIR
-    local EOS_PEER=$(ls *_config.ini | head -n 1 | awk -F "_" '{ print $1 }')
-    popd > /dev/null
+    if [ -z $RESULT ]; then
+        echo "Cannot find '$NODE_NAME' instance on AWS."
+        echo "You must deploy the testnet before trying to deploy the wax-connect-api"
+        exit 9
+    else
+        local EOS_PEER_IP=$RESULT
+    fi
 
     get_private_key "wax.connect"
-    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST $PRODUCTION_OPTIONS"
+    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER_IP metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST $PRODUCTION_OPTIONS"
 }
 
 
@@ -486,7 +531,7 @@ function deploy_rng_contract() {
 function main() {
     startup
 
-    local OPTIONS=("All" "Testnet" "Connect API" "Oracle" "RNG contract" "<Quit>")
+    local OPTIONS=("All" "Testnet" "Block Explorer" "Connect API" "Oracle" "RNG contract" "<Quit>")
 
     while : ; do
         print_menu "What do you want to deploy?" OPTIONS
@@ -505,13 +550,17 @@ function main() {
                 ;;
             2)
                 get_environment
-                deploy_connect_api
+                deploy_block_explorer
                 ;;
             3)
                 get_environment
-                deploy_oracle
+                deploy_connect_api
                 ;;
             4)
+                get_environment
+                deploy_oracle
+                ;;
+            5)
                 get_environment
                 deploy_rng_contract
                 ;;
