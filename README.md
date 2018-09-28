@@ -25,6 +25,7 @@ every commit:
 - terraform version "0.10.7"
 - ansible
 - npm
+- node "8.9"
 - python3
 - cleos
 - make
