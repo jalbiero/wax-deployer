@@ -540,6 +540,7 @@ function main() {
             0)
                 get_environment
                 deploy_testnet
+                deploy_block_explorer
                 deploy_connect_api
                 deploy_oracle
                 deploy_rng_contract
