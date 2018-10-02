@@ -1,0 +1,16 @@
+# Versions to be deployed
+
+# Branches
+branch              develop-1.3.0
+#branch             develop
+#branch             master
+
+# Projects
+wax-testnet
+wax-tracker
+wax-connect-api     v1.0.7.0
+wax-rng-oracle      v1.0.7.0
+wax-rng             v1.0.7.0
+
+# Docker images
+docker-eos-node     1.3.0
