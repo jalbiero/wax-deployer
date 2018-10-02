@@ -78,13 +78,9 @@ function get_environment() {
 function get_keys_file_path()
 {    
     if [ -z $WAX_KEYS_FILE_PATH ]; then
-        read -e -i "keys.csv" -p "Where is the CSV keys file (path and name)? (only for wax-testnet: an empty value will create a new file): " WAX_KEYS_FILE_PATH
-
-        #if [ ! -z $WAX_KEYS_FILE_PATH ]; then
-        #    cp -i $WAX_KEYS_FILE_PATH/keys.csv $(pwd)/ansible/roles/eos-node/templates/
-        #fi
+        read -e -i "keys.csv" -p "Path and name of the CSV keys file (only for wax-testnet: an empty value will create a new file): " WAX_KEYS_FILE_PATH
     else
-        echo "CSV keys file path/name already set to: $WAX_KEYS_FILE_PATH"
+        echo "CSV keys file already set to: $WAX_KEYS_FILE_PATH"
     fi
 }
 
@@ -427,7 +423,7 @@ function main() {
 ################################################################################
 # Entry point
 
-#check_requirements
+check_requirements
 
 if [ "$1" == "--internal-start" ]; then
     # Starts the deployer

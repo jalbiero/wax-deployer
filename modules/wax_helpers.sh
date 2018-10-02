@@ -91,30 +91,37 @@ function wax_check_command() {
 # Return: the required version in $RESULT variable
 function wax_get_component_version()
 {
-    #local VERSION_FILE="version-list.txt"
-    
-    # Remove the comment lines and then try to search the component name
-    local LINE=$(grep -v '^ *#' $VERSION_FILE | grep $1)
-    
-    # TODO Refactor, repeated pieces of code
-    if [ -z "$LINE" ]; then
-        # Component not found
-        if [ -z "$2" ]; then
-            RESULT="" 
-        else
-            RESULT=$2
-        fi
-    else
-        local VERSION=$(echo $LINE | awk '{ print $2} ') 
+    if [ -f $WAX_VERSION_FILE ]; then
+        # Remove the comment lines and then try to search the component name
+        local LINE=$(grep -v '^ *#' $WAX_VERSION_FILE | grep $1)
         
-        if [ -z "$VERSION" ]; then
+        # TODO Refactor, repeated pieces of code, maybe a simple RESULT=$2 is ok
+        if [ -z "$LINE" ]; then
+            # Component not found
             if [ -z "$2" ]; then
                 RESULT="" 
             else
                 RESULT=$2
             fi
         else
-            RESULT=$VERSION
+            local VERSION=$(echo "$LINE" | awk '{ print $2} ') 
+            
+            if [ -z "$VERSION" ]; then
+                if [ -z "$2" ]; then
+                    RESULT="" 
+                else
+                    RESULT=$2
+                fi
+            else
+                RESULT=$VERSION
+            fi
+        fi
+    else
+        # Component not found
+        if [ -z "$2" ]; then
+            RESULT="" 
+        else
+            RESULT=$2
         fi
     fi
 }
@@ -125,7 +132,7 @@ function wax_get_component_version()
 # Return: the working branch in $RESULT variable
 function wax_get_working_branch()
 {
-    get_component_version "branch" "master" 
+    wax_get_component_version "branch" "master" 
 }
 
 
@@ -142,11 +149,14 @@ function wax_download_component() {
         wax_get_component_version $1
         
         if [ -z $RESULT ]; then
-            # Version was not specfied, try with branch (it will return 'master' by default)
+            # Version was not specfied, try with branch
             wax_get_working_branch
         fi    
         
+        pushd . > /dev/null
+        cd "$1"
         wax_abort_if_fail "git checkout $RESULT"
+        popd > /dev/null
         
     else
         echo "Component '$1' already exists, download skipped"
@@ -163,11 +173,7 @@ function wax_download_component() {
 # Arg $2: keys file 
 # Return: The private key in RESULT variable
 function wax_get_private_key() {
-    #local KEYS_FILE=$2/keys.csv  #       $WAX_WORK_DIR/wax-testnet/ansible/roles/eos-node/templates/keys.csv
-    
-
     if [ ! -e $2 ]; then
-        #echo "Cannot find '$KEYS_FILE'. Testnet is not deployed in this machine, aborting"
         echo "Cannot find the keys file ('$2'), aborting"
         exit 103
     fi
