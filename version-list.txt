@@ -9,7 +9,7 @@ branch              develop-1.3.0
 #wax-testnet
 wax-tracker         master
 wax-connect-api     WD-476/Automation_changes_for_EOS_1-3-0
-#wax-rng-oracle      v1.0.7.0
+wax-rng-oracle      develop
 #wax-rng             v1.0.7.0
 
 # Docker images

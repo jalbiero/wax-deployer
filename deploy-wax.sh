@@ -57,7 +57,11 @@ function get_environment() {
 
     # If wasn't set before running this script?
     if [ -z $WAX_ENV_POSTFIX ]; then
-        read -e -i $USER -p "Environment postfix (your user is used for security, modify or delete it): " WAX_ENV_POSTFIX
+        if [ -z $USER ]; then # When running inside a docker $USER is not defined :-O
+            USER=$RANDOM
+        fi
+    
+        read -e -i $USER -p "Environment postfix (modify or delete it): " WAX_ENV_POSTFIX
     else
         echo "Environment postfix already set to: $WAX_ENV_POSTFIX"
     fi
@@ -78,7 +82,7 @@ function get_environment() {
 function get_keys_file_path()
 {    
     if [ -z $WAX_KEYS_FILE_PATH ]; then
-        read -e -i "keys.csv" -p "Path and name of the CSV keys file (for wax-testnet only: an empty value will create a new file): " WAX_KEYS_FILE_PATH
+        read -e -i "<path>/keys.csv" -p "Path and name of the CSV keys file (for wax-testnet only: an empty value will create a new file): " WAX_KEYS_FILE_PATH
     else
         echo "CSV keys file already set to: $WAX_KEYS_FILE_PATH"
     fi
@@ -92,9 +96,10 @@ function check_requirements() {
     # Validate node installation
     which node | grep "/usr/bin" > /dev/null
     if [ $? == 0 ]; then
+        echo "WARNING:"
         echo "Your node.js installation is not recommended"
         echo "Please use https://github.com/creationix/nvm#install-script to install it"
-        exit 10
+        #exit 10   # < just for now a simple warning
     fi
 
     wax_check_command npm
@@ -178,14 +183,16 @@ function deploy_testnet() {
     wax_get_docker_version "eos-docker-image"
     local DOCKER_VERSION=$RESULT
 
-    # TODO Remove this when upgrade to terraform version 0.11.x. It's a must to
-    #      ask for continuation before applying the changes!
-    make terraform_plan ENVIRONMENT=$WAX_ENV ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS
-    wax_ask_yesno "Read carefully the above terraform plan, are you sure to continue?"
+#     # TODO Remove this when upgrade to terraform version 0.11.x. It's a must to
+#     #      ask for continuation before applying the changes!
+#     make terraform_plan ENVIRONMENT=$WAX_ENV ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS
+#     wax_ask_yesno "Read carefully the above terraform plan, are you sure to continue?"
 
-    if [ "$RESULT" == "y" ]; then
+#    if [ "$RESULT" == "y" ]; then
         wax_abort_if_fail "make all ENVIRONMENT=$WAX_ENV EOS_DOCKER_IMAGE_TAG=$DOCKER_VERSION ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS"
-    fi
+#    fi
+    
+    
 }
 
 
@@ -266,9 +273,7 @@ function deploy_connect_api() {
 
     wax_get_private_key "wax.connect" $WAX_KEYS_FILE_PATH
     wax_abort_if_fail \
-        "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER_IP " \
-        "metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB " \
-        "influxdb_host=$INFLUX_HOST eos_docker_image_tag=$DOCKER_VERSION $PRODUCTION_OPTIONS"
+        "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER_IP metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST eos_docker_image_tag=$DOCKER_VERSION $PRODUCTION_OPTIONS"
 }
 
 
@@ -285,17 +290,16 @@ function deploy_oracle() {
 
     local CONNECT_API_LB
     aws_get_load_balancer_attribute "wax-connect-api-lb-$WAX_ENV_POSTFIX_FULL" "DNSName"
-    read -e -i "$RESULT" -p "Connect API Load Balancer address (ENTER accept the suggested): " CONNECT_API_LB
+    read -e -i "$RESULT" -p "Connect API Load Balancer address (ENTER to accept the suggested): " CONNECT_API_LB
 
     local INFLUX_DB
     read -e -i "telegraf" -p "Influx database (ENTER to accept the suggested): " INFLUX_DB
 
     local INFLUX_HOST
-    read -e -i "localhost" -p "Influx database (ENTER to accept the suggested): " INFLUX_HOST
+    read -e -i "localhost" -p "Influx hostname (ENTER to accept the suggested): " INFLUX_HOST
 
     wax_abort_if_fail \
-        "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST " \
-        "metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
+        "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
 }
 
 

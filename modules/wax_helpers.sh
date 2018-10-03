@@ -93,36 +93,22 @@ function wax_get_component_version()
 {
     if [ -f $WAX_VERSION_FILE ]; then
         # Remove the comment lines and then try to search the component name
-        local LINE=$(grep -v '^ *#' $WAX_VERSION_FILE | grep $1)
+        local LINE=$(grep -v '^ *#' $WAX_VERSION_FILE | grep "$1 ")
         
-        # TODO Refactor, repeated pieces of code, maybe a simple RESULT=$2 is ok
         if [ -z "$LINE" ]; then
-            # Component not found
-            if [ -z "$2" ]; then
-                RESULT="" 
-            else
-                RESULT=$2
-            fi
+            RESULT=$2
         else
             local VERSION=$(echo "$LINE" | awk '{ print $2} ') 
             
             if [ -z "$VERSION" ]; then
-                if [ -z "$2" ]; then
-                    RESULT="" 
-                else
-                    RESULT=$2
-                fi
+                RESULT=$2
             else
                 RESULT=$VERSION
             fi
         fi
     else
         # Component not found
-        if [ -z "$2" ]; then
-            RESULT="" 
-        else
-            RESULT=$2
-        fi
+        RESULT=$2
     fi
 }
 
@@ -157,23 +143,22 @@ function wax_download_component() {
     if [ ! -d "$1" ]; then
         cd  $WAX_WORK_DIR
         wax_abort_if_fail "git clone ssh://git@monica.mcmxi.services:2259/wax/$1.git"
-        
-        wax_get_component_version $1
-        
-        if [ -z $RESULT ]; then
-            # Version was not specfied, try with branch
-            wax_get_working_branch
-        fi    
-        
-        pushd . > /dev/null
-        cd "$1"
-        wax_abort_if_fail "git checkout $RESULT"
-        popd > /dev/null
-        
     else
         echo "Component '$1' already exists, download skipped"
     fi
 
+    wax_get_component_version $1
+    
+    if [ -z $RESULT ]; then
+        # Version was not specfied, try with branch
+        wax_get_working_branch
+    fi    
+    
+    pushd . > /dev/null
+    cd "$1"
+    wax_abort_if_fail "git checkout $RESULT"
+    popd > /dev/null
+        
     echo ""
 }
 
