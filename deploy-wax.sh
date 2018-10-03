@@ -78,7 +78,7 @@ function get_environment() {
 function get_keys_file_path()
 {    
     if [ -z $WAX_KEYS_FILE_PATH ]; then
-        read -e -i "keys.csv" -p "Path and name of the CSV keys file (only for wax-testnet: an empty value will create a new file): " WAX_KEYS_FILE_PATH
+        read -e -i "keys.csv" -p "Path and name of the CSV keys file (for wax-testnet only: an empty value will create a new file): " WAX_KEYS_FILE_PATH
     else
         echo "CSV keys file already set to: $WAX_KEYS_FILE_PATH"
     fi
@@ -174,6 +174,9 @@ function deploy_testnet() {
 
         PRODUCTION_OPTIONS="ROOT_PUB_KEY=$PUB_KEY ROOT_PRI_KEY=$PRI_KEY"
     fi
+    
+    wax_get_docker_version "eos-docker-image"
+    local DOCKER_VERSION=$RESULT
 
     # TODO Remove this when upgrade to terraform version 0.11.x. It's a must to
     #      ask for continuation before applying the changes!
@@ -181,7 +184,7 @@ function deploy_testnet() {
     wax_ask_yesno "Read carefully the above terraform plan, are you sure to continue?"
 
     if [ "$RESULT" == "y" ]; then
-        wax_abort_if_fail "make all ENVIRONMENT=$WAX_ENV ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS"
+        wax_abort_if_fail "make all ENVIRONMENT=$WAX_ENV EOS_DOCKER_IMAGE_TAG=$DOCKER_VERSION ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS"
     fi
 }
 
@@ -245,6 +248,9 @@ function deploy_connect_api() {
 
         PRODUCTION_OPTIONS="chain_id=$CHAIN_ID"
     fi
+    
+    wax_get_docker_version "eos-docker-image"
+    local DOCKER_VERSION=$RESULT
 
     # TODO Get IPs from all nodes, wax-connect-api now support a list of IP in "eos_peer_ip"
     local NODE_NAME="eos-node-0-$WAX_ENV_POSTFIX_FULL"
@@ -259,7 +265,10 @@ function deploy_connect_api() {
     fi
 
     wax_get_private_key "wax.connect" $WAX_KEYS_FILE_PATH
-    wax_abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER_IP metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST $PRODUCTION_OPTIONS"
+    wax_abort_if_fail \
+        "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER_IP " \
+        "metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB " \
+        "influxdb_host=$INFLUX_HOST eos_docker_image_tag=$DOCKER_VERSION $PRODUCTION_OPTIONS"
 }
 
 
@@ -284,7 +293,9 @@ function deploy_oracle() {
     local INFLUX_HOST
     read -e -i "localhost" -p "Influx database (ENTER to accept the suggested): " INFLUX_HOST
 
-    wax_abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
+    wax_abort_if_fail \
+        "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST " \
+        "metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
 }
 
 

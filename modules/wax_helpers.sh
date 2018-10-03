@@ -127,12 +127,24 @@ function wax_get_component_version()
 }
 
 
-# Reads the specified working branch from version file
+# Gets the specified working branch from version file. If the version is not
+# found the "master"  is returned
 #
 # Return: the working branch in $RESULT variable
 function wax_get_working_branch()
 {
     wax_get_component_version "branch" "master" 
+}
+
+
+# Gets the specified docker version from version file. If the version is not
+# found the "latest" version is returned
+#
+# Arg $1: docker name
+# Return: the docker version in $RESULT variable
+function wax_get_docker_version()
+{
+    wax_get_component_version $1 "latest" 
 }
 
 

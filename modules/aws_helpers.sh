@@ -13,7 +13,7 @@
 # Arg $2: Attribute
 # Return: Attribute value in $RESULT variable
 function aws_get_instance_attribute() {
-    RESULT=$(abort_if_fail \
+    RESULT=$(wax_abort_if_fail \
         "aws ec2 describe-instances --filters 'Name=tag:Name,Values=$1' | jq -r '.Reservations[].Instances[].$2'")
 
     if [ "$RESULT" == "null" ]; then
@@ -29,7 +29,7 @@ function aws_get_instance_attribute() {
 # Arg $2: Attribute
 # Return: Attribute value in $RESULT variable
 function aws_get_load_balancer_attribute() {
-    RESULT=$(abort_if_fail \
+    RESULT=$(wax_abort_if_fail \
         "aws elb describe-load-balancers --load-balancer-name $1 | jq -r '.LoadBalancerDescriptions[].$2'")
 
     if [ "$RESULT" == "null" ]; then
