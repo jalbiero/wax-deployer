@@ -3,7 +3,7 @@
 #
 # WAX deployer script for (wax-testnet, wax-connect-api, wax-rng-oracle, wax-rng)
 #
-# All variable starting with WAX_ can be set before running this script in
+# The following variable can be set before running this script in
 # order to automate de execution:
 #
 #   - WAX_WORK_DIR:
@@ -79,10 +79,12 @@ function get_environment() {
 
 
 # Gets the keys file from user, storing the value on WAX_KEYS_FILE_PATH
+#
+# Arg $1: (optional) Default keys file
 function get_keys_file_path()
-{    
+{   
     if [ -z $WAX_KEYS_FILE_PATH ]; then
-        read -e -i "<path>/keys.csv" -p "Path and name of the CSV keys file (for wax-testnet only: an empty value will create a new file): " WAX_KEYS_FILE_PATH
+        read -e -i "$1" -p "Path and name of the CSV keys file (for wax-testnet only: an empty value will create a new file): " WAX_KEYS_FILE_PATH
     else
         echo "CSV keys file already set to: $WAX_KEYS_FILE_PATH"
     fi
@@ -183,16 +185,7 @@ function deploy_testnet() {
     wax_get_docker_version "eos-docker-image"
     local DOCKER_VERSION=$RESULT
 
-#     # TODO Remove this when upgrade to terraform version 0.11.x. It's a must to
-#     #      ask for continuation before applying the changes!
-#     make terraform_plan ENVIRONMENT=$WAX_ENV ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS
-#     wax_ask_yesno "Read carefully the above terraform plan, are you sure to continue?"
-
-#    if [ "$RESULT" == "y" ]; then
-        wax_abort_if_fail "make all ENVIRONMENT=$WAX_ENV EOS_DOCKER_IMAGE_TAG=$DOCKER_VERSION ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS"
-#    fi
-    
-    
+    wax_abort_if_fail "make all ENVIRONMENT=$WAX_ENV EOS_DOCKER_IMAGE_TAG=$DOCKER_VERSION ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS"
 }
 
 
@@ -381,6 +374,8 @@ function show_versions()
 function main() {
     startup
 
+    local DEFAULT_KEYS_FILE=$WAX_WORK_DIR/wax-testnet/ansible/roles/eos-node/templates/keys.csv
+    
     local OPTIONS=( \
         "All" "Testnet" "Block Explorer" "Connect API" "Oracle" "RNG contract" "<Version info>" "<Quit>")
 
@@ -390,7 +385,7 @@ function main() {
         case "$RESULT" in
             0)
                 get_environment
-                get_keys_file_path
+                get_keys_file_path  # No default keys file here
                 deploy_testnet
                 deploy_block_explorer
                 deploy_connect_api
@@ -399,7 +394,7 @@ function main() {
                 ;;
             1)
                 get_environment
-                get_keys_file_path
+                get_keys_file_path $DEFAULT_KEYS_FILE
                 deploy_testnet
                 ;;
             2)
@@ -408,7 +403,7 @@ function main() {
                 ;;
             3)
                 get_environment
-                get_keys_file_path
+                get_keys_file_path $DEFAULT_KEYS_FILE
                 deploy_connect_api
                 ;;
             4)
@@ -417,7 +412,7 @@ function main() {
                 ;;
             5)
                 get_environment
-                get_keys_file_path
+                get_keys_file_path $DEFAULT_KEYS_FILE
                 deploy_rng_contract
                 ;;
             6)
@@ -446,7 +441,7 @@ if [ "$1" == "--internal-start" ]; then
     main
 else
     # This script must be executed from the same directory where it resides
-    # TODO Add checking
+    # TODO Add checking for that
 
     # Relaunch this instance, but logging everything to an installation file
     $0 --internal-start 2>&1 | tee -a ./deploy-wax-installation.log
