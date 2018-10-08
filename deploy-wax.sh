@@ -3,7 +3,7 @@
 #
 # WAX deployer script for (wax-testnet, wax-connect-api, wax-rng-oracle, wax-rng)
 #
-# All variable starting with WAX_ can be set before running this script in
+# The following variable can be set before running this script in
 # order to automate de execution:
 #
 #   - WAX_WORK_DIR:
@@ -57,7 +57,11 @@ function get_environment() {
 
     # If wasn't set before running this script?
     if [ -z $WAX_ENV_POSTFIX ]; then
-        read -e -i $USER -p "Environment postfix (your user is used for security, modify or delete it): " WAX_ENV_POSTFIX
+        if [ -z $USER ]; then # When running inside a docker $USER is not defined :-O
+            USER=$RANDOM
+        fi
+    
+        read -e -i $USER -p "Environment postfix (modify or delete it): " WAX_ENV_POSTFIX
     else
         echo "Environment postfix already set to: $WAX_ENV_POSTFIX"
     fi
@@ -75,16 +79,14 @@ function get_environment() {
 
 
 # Gets the keys file from user, storing the value on WAX_KEYS_FILE_PATH
+#
+# Arg $1: (optional) Default keys file
 function get_keys_file_path()
-{    
+{   
     if [ -z $WAX_KEYS_FILE_PATH ]; then
-        read -e -i "keys.csv" -p "Where is the CSV keys file (path and name)? (only for wax-testnet: an empty value will create a new file): " WAX_KEYS_FILE_PATH
-
-        #if [ ! -z $WAX_KEYS_FILE_PATH ]; then
-        #    cp -i $WAX_KEYS_FILE_PATH/keys.csv $(pwd)/ansible/roles/eos-node/templates/
-        #fi
+        read -e -i "$1" -p "Path and name of the CSV keys file (for wax-testnet only: an empty value will create a new file): " WAX_KEYS_FILE_PATH
     else
-        echo "CSV keys file path/name already set to: $WAX_KEYS_FILE_PATH"
+        echo "CSV keys file already set to: $WAX_KEYS_FILE_PATH"
     fi
 }
 
@@ -96,9 +98,10 @@ function check_requirements() {
     # Validate node installation
     which node | grep "/usr/bin" > /dev/null
     if [ $? == 0 ]; then
+        echo "WARNING:"
         echo "Your node.js installation is not recommended"
         echo "Please use https://github.com/creationix/nvm#install-script to install it"
-        exit 10
+        #exit 10   # < just for now a simple warning
     fi
 
     wax_check_command npm
@@ -178,20 +181,16 @@ function deploy_testnet() {
 
         PRODUCTION_OPTIONS="ROOT_PUB_KEY=$PUB_KEY ROOT_PRI_KEY=$PRI_KEY"
     fi
+    
+    wax_get_docker_version "eos-docker-image"
+    local DOCKER_VERSION=$RESULT
 
-    # TODO Remove this when upgrade to terraform version 0.11.x. It's a must to
-    #      ask for continuation before applying the changes!
-    make terraform_plan ENVIRONMENT=$WAX_ENV ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS
-    wax_ask_yesno "Read carefully the above terraform plan, are you sure to continue?"
-
-    if [ "$RESULT" == "y" ]; then
-        wax_abort_if_fail "make all ENVIRONMENT=$WAX_ENV ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS"
-    fi
+    wax_abort_if_fail "make all ENVIRONMENT=$WAX_ENV EOS_DOCKER_IMAGE_TAG=$DOCKER_VERSION ENV_POSTFIX=$WAX_ENV_POSTFIX $PRODUCTION_OPTIONS"
 }
 
 
-function deploy_block_explorer() {
-    echo -e "\nDeploying Block Explorer..."
+function deploy_tracker() {
+    echo -e "\nDeploying Tracker..."
     wax_download_component "wax-tracker"
     cd $WAX_WORK_DIR/wax-tracker
 
@@ -235,7 +234,7 @@ function deploy_connect_api() {
     read -e -i "telegraf" -p "Influx database (ENTER to accept the suggested): " INFLUX_DB
 
     local INFLUX_HOST
-    read -e -i "localhost" -p "Influx database (ENTER to accept the suggested): " INFLUX_HOST
+    read -e -i "localhost" -p "Influx database host (ENTER to accept the suggested): " INFLUX_HOST
 
     local PRODUCTION_OPTIONS
 
@@ -249,6 +248,9 @@ function deploy_connect_api() {
 
         PRODUCTION_OPTIONS="chain_id=$CHAIN_ID"
     fi
+    
+    wax_get_docker_version "eos-docker-image"
+    local DOCKER_VERSION=$RESULT
 
     # TODO Get IPs from all nodes, wax-connect-api now support a list of IP in "eos_peer_ip"
     local NODE_NAME="eos-node-0-$WAX_ENV_POSTFIX_FULL"
@@ -263,7 +265,8 @@ function deploy_connect_api() {
     fi
 
     wax_get_private_key "wax.connect" $WAX_KEYS_FILE_PATH
-    wax_abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER_IP metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST $PRODUCTION_OPTIONS"
+    wax_abort_if_fail \
+        "make deploy env_postfix=$WAX_ENV_POSTFIX key_provider=$RESULT eos_peer_ip=$EOS_PEER_IP metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST eos_docker_image_tag=$DOCKER_VERSION $PRODUCTION_OPTIONS"
 }
 
 
@@ -280,15 +283,16 @@ function deploy_oracle() {
 
     local CONNECT_API_LB
     aws_get_load_balancer_attribute "wax-connect-api-lb-$WAX_ENV_POSTFIX_FULL" "DNSName"
-    read -e -i "$RESULT" -p "Connect API Load Balancer address (ENTER accept the suggested): " CONNECT_API_LB
+    read -e -i "$RESULT" -p "Connect API Load Balancer address (ENTER to accept the suggested): " CONNECT_API_LB
 
     local INFLUX_DB
     read -e -i "telegraf" -p "Influx database (ENTER to accept the suggested): " INFLUX_DB
 
     local INFLUX_HOST
-    read -e -i "localhost" -p "Influx database (ENTER to accept the suggested): " INFLUX_HOST
+    read -e -i "localhost" -p "Influx hostname (ENTER to accept the suggested): " INFLUX_HOST
 
-    wax_abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
+    wax_abort_if_fail \
+        "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
 }
 
 
@@ -370,8 +374,10 @@ function show_versions()
 function main() {
     startup
 
+    local DEFAULT_KEYS_FILE=$WAX_WORK_DIR/wax-testnet/ansible/roles/eos-node/templates/keys.csv
+    
     local OPTIONS=( \
-        "All" "Testnet" "Block Explorer" "Connect API" "Oracle" "RNG contract" "<Version info>" "<Quit>")
+        "All" "Testnet" "Tracker" "Connect API" "Oracle" "RNG contract" "<Version info>" "<Quit>")
 
     while : ; do
         wax_print_menu "What do you want to deploy?" OPTIONS
@@ -379,25 +385,25 @@ function main() {
         case "$RESULT" in
             0)
                 get_environment
-                get_keys_file_path
+                get_keys_file_path  # No default keys file here
                 deploy_testnet
-                deploy_block_explorer
+                deploy_tracker
                 deploy_connect_api
                 deploy_oracle
                 deploy_rng_contract
                 ;;
             1)
                 get_environment
-                get_keys_file_path
+                get_keys_file_path $DEFAULT_KEYS_FILE
                 deploy_testnet
                 ;;
             2)
                 get_environment
-                deploy_block_explorer
+                deploy_tracker
                 ;;
             3)
                 get_environment
-                get_keys_file_path
+                get_keys_file_path $DEFAULT_KEYS_FILE
                 deploy_connect_api
                 ;;
             4)
@@ -406,7 +412,7 @@ function main() {
                 ;;
             5)
                 get_environment
-                get_keys_file_path
+                get_keys_file_path $DEFAULT_KEYS_FILE
                 deploy_rng_contract
                 ;;
             6)
@@ -427,7 +433,7 @@ function main() {
 ################################################################################
 # Entry point
 
-#check_requirements
+check_requirements
 
 if [ "$1" == "--internal-start" ]; then
     # Starts the deployer
@@ -435,7 +441,7 @@ if [ "$1" == "--internal-start" ]; then
     main
 else
     # This script must be executed from the same directory where it resides
-    # TODO Add checking
+    # TODO Add checking for that
 
     # Relaunch this instance, but logging everything to an installation file
     $0 --internal-start 2>&1 | tee -a ./deploy-wax-installation.log

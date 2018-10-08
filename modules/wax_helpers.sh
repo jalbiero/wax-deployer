@@ -91,41 +91,46 @@ function wax_check_command() {
 # Return: the required version in $RESULT variable
 function wax_get_component_version()
 {
-    #local VERSION_FILE="version-list.txt"
-    
-    # Remove the comment lines and then try to search the component name
-    local LINE=$(grep -v '^ *#' $VERSION_FILE | grep $1)
-    
-    # TODO Refactor, repeated pieces of code
-    if [ -z "$LINE" ]; then
-        # Component not found
-        if [ -z "$2" ]; then
-            RESULT="" 
-        else
+    if [ -f $WAX_VERSION_FILE ]; then
+        # Remove the comment lines and then try to search the component name
+        local LINE=$(grep -v '^ *#' $WAX_VERSION_FILE | grep "$1 ")
+        
+        if [ -z "$LINE" ]; then
             RESULT=$2
+        else
+            local VERSION=$(echo "$LINE" | awk '{ print $2} ') 
+            
+            if [ -z "$VERSION" ]; then
+                RESULT=$2
+            else
+                RESULT=$VERSION
+            fi
         fi
     else
-        local VERSION=$(echo $LINE | awk '{ print $2} ') 
-        
-        if [ -z "$VERSION" ]; then
-            if [ -z "$2" ]; then
-                RESULT="" 
-            else
-                RESULT=$2
-            fi
-        else
-            RESULT=$VERSION
-        fi
+        # Component not found
+        RESULT=$2
     fi
 }
 
 
-# Reads the specified working branch from version file
+# Gets the specified working branch from version file. If the version is not
+# found the "master"  is returned
 #
 # Return: the working branch in $RESULT variable
 function wax_get_working_branch()
 {
-    get_component_version "branch" "master" 
+    wax_get_component_version "branch" "master" 
+}
+
+
+# Gets the specified docker version from version file. If the version is not
+# found the "latest" version is returned
+#
+# Arg $1: docker name
+# Return: the docker version in $RESULT variable
+function wax_get_docker_version()
+{
+    wax_get_component_version $1 "latest" 
 }
 
 
@@ -138,20 +143,22 @@ function wax_download_component() {
     if [ ! -d "$1" ]; then
         cd  $WAX_WORK_DIR
         wax_abort_if_fail "git clone ssh://git@monica.mcmxi.services:2259/wax/$1.git"
-        
-        wax_get_component_version $1
-        
-        if [ -z $RESULT ]; then
-            # Version was not specfied, try with branch (it will return 'master' by default)
-            wax_get_working_branch
-        fi    
-        
-        wax_abort_if_fail "git checkout $RESULT"
-        
     else
         echo "Component '$1' already exists, download skipped"
     fi
 
+    wax_get_component_version $1
+    
+    if [ -z $RESULT ]; then
+        # Version was not specfied, try with branch
+        wax_get_working_branch
+    fi    
+    
+    pushd . > /dev/null
+    cd "$1"
+    wax_abort_if_fail "git checkout $RESULT"
+    popd > /dev/null
+        
     echo ""
 }
 
@@ -163,11 +170,7 @@ function wax_download_component() {
 # Arg $2: keys file 
 # Return: The private key in RESULT variable
 function wax_get_private_key() {
-    #local KEYS_FILE=$2/keys.csv  #       $WAX_WORK_DIR/wax-testnet/ansible/roles/eos-node/templates/keys.csv
-    
-
     if [ ! -e $2 ]; then
-        #echo "Cannot find '$KEYS_FILE'. Testnet is not deployed in this machine, aborting"
         echo "Cannot find the keys file ('$2'), aborting"
         exit 103
     fi
