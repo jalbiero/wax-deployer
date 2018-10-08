@@ -234,7 +234,7 @@ function deploy_connect_api() {
     read -e -i "telegraf" -p "Influx database (ENTER to accept the suggested): " INFLUX_DB
 
     local INFLUX_HOST
-    read -e -i "localhost" -p "Influx database (ENTER to accept the suggested): " INFLUX_HOST
+    read -e -i "localhost" -p "Influx database host (ENTER to accept the suggested): " INFLUX_HOST
 
     local PRODUCTION_OPTIONS
 
