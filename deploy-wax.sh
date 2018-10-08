@@ -189,8 +189,8 @@ function deploy_testnet() {
 }
 
 
-function deploy_block_explorer() {
-    echo -e "\nDeploying Block Explorer..."
+function deploy_tracker() {
+    echo -e "\nDeploying Tracker..."
     wax_download_component "wax-tracker"
     cd $WAX_WORK_DIR/wax-tracker
 
@@ -377,7 +377,7 @@ function main() {
     local DEFAULT_KEYS_FILE=$WAX_WORK_DIR/wax-testnet/ansible/roles/eos-node/templates/keys.csv
     
     local OPTIONS=( \
-        "All" "Testnet" "Block Explorer" "Connect API" "Oracle" "RNG contract" "<Version info>" "<Quit>")
+        "All" "Testnet" "Tracker" "Connect API" "Oracle" "RNG contract" "<Version info>" "<Quit>")
 
     while : ; do
         wax_print_menu "What do you want to deploy?" OPTIONS
@@ -387,7 +387,7 @@ function main() {
                 get_environment
                 get_keys_file_path  # No default keys file here
                 deploy_testnet
-                deploy_block_explorer
+                deploy_tracker
                 deploy_connect_api
                 deploy_oracle
                 deploy_rng_contract
@@ -399,7 +399,7 @@ function main() {
                 ;;
             2)
                 get_environment
-                deploy_block_explorer
+                deploy_tracker
                 ;;
             3)
                 get_environment
