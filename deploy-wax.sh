@@ -541,7 +541,7 @@ function deploy_explorer()
 
     if [ -z $RESULT ]; then
         echo "Cannot find '$NODE_NAME' instance on AWS."
-        echo "You must deploy connect-api before trying to deploy the block explorer"
+        echo "You must deploy connect-api before trying to deploy the explorer"
         exit 10
     else
         local CONNECT_IP=$RESULT
