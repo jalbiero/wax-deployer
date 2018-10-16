@@ -547,7 +547,7 @@ function deploy_explorer()
         local CONNECT_IP=$RESULT
     fi
 
-    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX trade_api_url=$TRADE_API_URL wax_connect_api_url=http://$CONNECT_IP:8888"
+    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX trade_api_url=$TRADE_API_URL wax_connect_api_url=http://$CONNECT_IP"
 }
 
 
