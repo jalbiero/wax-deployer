@@ -24,7 +24,7 @@
 #   TODO Add a silent mode installation
 #
 
-SCRIPT_VERSION="1.0.7.2"
+SCRIPT_VERSION="1.0.7.3"
 
 
 ################################################################################
@@ -368,8 +368,8 @@ function deploy_testnet() {
 }
 
 
-function deploy_block_explorer() {
-    echo -e "\nDeploying Block Explorer..."
+function deploy_tracker() {
+    echo -e "\nDeploying Tracker..."
     download_component "wax-tracker"
     cd $WAX_WORK_DIR/wax-tracker
 
@@ -389,7 +389,7 @@ function deploy_block_explorer() {
 
     if [ -z $RESULT ]; then
         echo "Cannot find '$NODE_NAME' instance on AWS."
-        echo "You must deploy the testnet before trying to deploy the block explorer"
+        echo "You must deploy the testnet before trying to deploy the tracker"
         exit 7
     fi
 
@@ -430,7 +430,7 @@ function deploy_connect_api() {
 
     # TODO Get IPs from all nodes, wax-connect-api now support a list of IP in "eos_peer_ip"
     local NODE_NAME="eos-node-0-$WAX_ENV_POSTFIX_FULL"
-    aws_get_instance_attribute $NODE_NAME  "PrivateIpAddress"
+    aws_get_instance_attribute $NODE_NAME "PrivateIpAddress"
 
     if [ -z $RESULT ]; then
         echo "Cannot find '$NODE_NAME' instance on AWS."
@@ -527,11 +527,35 @@ function deploy_rng_contract() {
 }
 
 
+function deploy_explorer()
+{
+    echo -e "\nDeploying Explorer..."
+    download_component "wax-explorer"
+    cd $WAX_WORK_DIR/wax-explorer
+
+    local TRADE_API_URL
+    read  -p "Trade API URL: " TRADE_API_URL
+
+    local NODE_NAME="wax-connect-api-node-0-$WAX_ENV_POSTFIX_FULL"
+    aws_get_instance_attribute $NODE_NAME "PrivateIpAddress"
+
+    if [ -z $RESULT ]; then
+        echo "Cannot find '$NODE_NAME' instance on AWS."
+        echo "You must deploy connect-api before trying to deploy the explorer"
+        exit 10
+    else
+        local CONNECT_IP=$RESULT
+    fi
+
+    abort_if_fail "make deploy env_postfix=$WAX_ENV_POSTFIX trade_api_url=$TRADE_API_URL wax_connect_api_url=http://$CONNECT_IP"
+}
+
+
 ################################################################################
 function main() {
     startup
 
-    local OPTIONS=("All" "Testnet" "Block Explorer" "Connect API" "Oracle" "RNG contract" "<Quit>")
+    local OPTIONS=("All" "Testnet" "Tracker" "Connect API" "Oracle" "RNG contract" "Explorer" "<Quit>")
 
     while : ; do
         print_menu "What do you want to deploy?" OPTIONS
@@ -540,10 +564,11 @@ function main() {
             0)
                 get_environment
                 deploy_testnet
-                deploy_block_explorer
+                deploy_tracker
                 deploy_connect_api
                 deploy_oracle
                 deploy_rng_contract
+                deploy_explorer
                 ;;
             1)
                 get_environment
@@ -551,7 +576,7 @@ function main() {
                 ;;
             2)
                 get_environment
-                deploy_block_explorer
+                deploy_tracker
                 ;;
             3)
                 get_environment
@@ -565,12 +590,14 @@ function main() {
                 get_environment
                 deploy_rng_contract
                 ;;
-
+            6)
+                get_environment
+                deploy_explorer
+                ;;
             *)
                 echo "Exit asked"
                 break
                 ;;
-
         esac
     done
 
