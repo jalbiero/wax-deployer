@@ -1,0 +1,17 @@
+# Versions to be deployed
+
+# Default branch if project version is not found
+branch              develop
+
+# Projects
+wax-testnet         develop
+wax-tracker         develop
+wax-connect-api     develop
+wax-explorer        develop
+wax-rng-oracle      develop
+wax-rng             develop
+case-tools          master
+
+# Docker images
+eos-docker-image    latest
+
