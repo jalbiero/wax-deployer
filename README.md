@@ -22,10 +22,10 @@ every commit:
  
 ### Prerequisites 
 
-- terraform version "0.10.7"
-- ansible
 - npm
 - node "8.9"
+- terraform version "0.11.8"
+- ansible
 - python3
 - cleos
 - make
@@ -35,6 +35,8 @@ every commit:
 - git
 - dig
 - tee
+- sed
+
 
 ### Command 
 
