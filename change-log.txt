@@ -4,6 +4,15 @@
 
 
 --------------------------------------------------------------------------------
+Version 2.0.0, 16/10/2018
+  - New schema version (3 digits) based on semantic versioning (see
+    https://semver.org/)
+  - Add changes from brch develop-1.3.0 (module refactorings, version list, etc)
+  - Add deployment of cases (they do not belong to rng project anymore)
+  - TODO Change this file for CHANGLOG.md
+
+
+--------------------------------------------------------------------------------
 Version 1.0.7.3, 11/10/2018
   - Add suport for wax-explorer (aka New Block Explorer)
 
