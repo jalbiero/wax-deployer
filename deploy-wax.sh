@@ -120,8 +120,6 @@ function check_requirements() {
     wax_check_command dig
     wax_check_command tee
     wax_check_command sed
-    wax_check_command true
-    wax_check_command false
     wax_check_command printf
 
     # TODO Add other requirements

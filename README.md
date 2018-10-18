@@ -24,7 +24,7 @@ every commit:
 
 - npm
 - node "8.9"
-- terraform version "0.11.8"
+- terraform version "0.11.x"
 - ansible
 - python3
 - cleos
@@ -36,7 +36,7 @@ every commit:
 - dig
 - tee
 - sed
-
+- printf
 
 ### Command 
 
