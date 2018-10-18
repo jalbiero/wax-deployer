@@ -28,6 +28,8 @@
 #
 #
 #   TODO Add a silent mode installation
+#   TODO EOS Docker image version is still not used with eos 1.0.x, but the
+#        code is prepared for that.
 #
 
 SCRIPT_VERSION="2.0.0"
@@ -99,14 +101,14 @@ function check_requirements() {
     which node | grep "/usr/bin" > /dev/null
     if [ $? == 0 ]; then
         echo "WARNING:"
-        echo "Your node.js installation is not recommended"
+        echo "Your node.js installation ($(which node)) is not recommended"
         echo "Please use https://github.com/creationix/nvm#install-script to install it"
         #exit 10   # < just for now a simple warning
     fi
 
     wax_check_command npm
     wax_check_command node "8.9"
-    wax_check_command terraform "0.11.8"
+    wax_check_command terraform "v0.11"
     wax_check_command ansible
     wax_check_command python3
     wax_check_command cleos
@@ -118,6 +120,9 @@ function check_requirements() {
     wax_check_command dig
     wax_check_command tee
     wax_check_command sed
+    wax_check_command true
+    wax_check_command false
+    wax_check_command printf
 
     # TODO Add other requirements
 
@@ -208,7 +213,9 @@ function deploy_tracker() {
     local NODE_NAME="eos-node-0-$WAX_ENV_POSTFIX_FULL"
     aws_get_instance_attribute $NODE_NAME  "PrivateIpAddress"
 
-    if [ -z $RESULT ]; then
+    echo "Result: '$RESULT'"
+
+    if [ -z "$RESULT" ]; then
         echo "Cannot find '$NODE_NAME' instance on AWS."
         echo "You must deploy the testnet before trying to deploy the block explorer"
         exit 11
@@ -324,6 +331,9 @@ function deploy_rng_contract() {
     aws_open_port "wax-connect-api-sg-$WAX_ENV_POSTFIX_FULL" "8888"
 
     export NODEOS_URL=http://$CONNECT_PUBLIC_IP:8888
+
+    # TODO Use (and test) the new task 'dockerized-deploy'
+    # TODO Add docker to the script requirements when dockerized-deploy will be used
     wax_abort_if_fail "make deploy"
 
     # Cleanup

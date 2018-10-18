@@ -14,7 +14,6 @@ if [ -z "$WAX_VERSION_FILE" ]; then
 fi
 
 
-
 # Arg $1: Menu title
 # Arg $2: String array with menu options
 # Return: Option index starting from 0 in RESULT variable
@@ -136,13 +135,17 @@ function wax_get_docker_version()
 
 # Downloads the specified component from WAX gitlab repository
 #
-# Arg $1: Component to donwnload in the current directory. If the component
-#         already exists it won't be donwnloaded
+# Arg $1: Component to download in the current directory. If the component
+#         already exists it won't be downloaded
 function wax_download_component() {
+    pushd . > /dev/null
+    cd $WAX_WORK_DIR
+
     # Do not download the component (directory) if already exist
+    local COMPONENT_DOWNLOADED=false
     if [ ! -d "$1" ]; then
-        cd  $WAX_WORK_DIR
         wax_abort_if_fail "git clone ssh://git@monica.mcmxi.services:2259/wax/$1.git"
+        COMPONENT_DOWNLOADED=true
     else
         echo "Component '$1' already exists, download skipped"
     fi
@@ -151,14 +154,25 @@ function wax_download_component() {
     
     if [ -z $RESULT ]; then
         # Version was not specfied, try with branch
-        wax_get_working_branch
+        wax_ask_yesno "Version for '$1' not found. Do you want to try with configured branch? ('no' will abort the deployment)"
+
+        if [ "$RESULT" == "y" ]; then
+            wax_get_working_branch
+        else
+            exit 105
+        fi
     fi    
-    
-    pushd . > /dev/null
+
+
     cd "$1"
     wax_abort_if_fail "git checkout $RESULT"
+
+    # If the component was not downloaded, a pull is a good idea
+    if [ "$COMPONENT_DOWNLOADED" == false ]; then
+        wax_abort_if_fail "git pull"
+    fi
+
     popd > /dev/null
-        
     echo ""
 }
 
@@ -197,5 +211,4 @@ function wax_abort_if_fail() {
         exit 104
     fi
 }
-
 

@@ -19,6 +19,9 @@ function aws_get_instance_attribute() {
     if [ "$RESULT" == "null" ]; then
         echo "Cannot get attribute '$2' for instance '$1', aborting"
         exit 200
+    else
+        # TODO Remove this fix when figure out why sometimes RESULT contain an extra line with the 'null' word
+        RESULT=$(printf $RESULT) # get only the 1st line
     fi
 }
 

@@ -10,7 +10,7 @@ wax-connect-api     develop
 wax-explorer        develop
 wax-rng-oracle      develop
 wax-rng             develop
-case-tools          master
+case-tools          develop
 
 # Docker images
 eos-docker-image    latest
