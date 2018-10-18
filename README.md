@@ -1,3 +1,6 @@
+# WAX-Deployer
+
+## Description 
 This is an interactive automation script to deploy not only wax-testnet, but
 wax-connect-api, wax-rng-oracle and wax-rng modules.
 
@@ -14,3 +17,29 @@ every commit:
 
     - Update the value of variable SCRIPT_VERSION.
     - Update the change-log.txt file
+
+## How to run 
+ 
+### Prerequisites 
+
+- npm
+- node "8.9"
+- terraform version "0.11.x"
+- ansible
+- python3
+- cleos
+- make
+- jq
+- aws
+- awk
+- git
+- dig
+- tee
+- sed
+- printf
+
+### Command 
+
+```bash
+./deploy-wax.sh
+```
