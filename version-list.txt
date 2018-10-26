@@ -4,14 +4,18 @@
 branch              develop
 
 # Projects
-wax-testnet         develop
-wax-tracker         develop
-wax-connect-api     develop
-wax-explorer        develop
-wax-rng-oracle      develop
-wax-rng             develop
-case-tools          develop
+wax-testnet         v1.0.0
+wax-tracker         v1.0.0
+wax-connect-api     v1.3.0
 
-# Docker images
+# This commit sha is used until developers release the first version
+# Sha from 2018/10/25
+wax-explorer        924c2f57c0f5d6c1511ad45f57b5548f418f3afe
+
+wax-rng-oracle      v1.0.0
+wax-rng             v1.3.1
+case-tools          v1.0.0
+
+# Docker images (future usage, only available for EOS 1.3.x)
 eos-docker-image    latest
 

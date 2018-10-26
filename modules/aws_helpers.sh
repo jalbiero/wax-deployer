@@ -57,6 +57,7 @@ function aws_open_port() {
         ALREADY_OPEN_ERROR=$(grep "InvalidPermission.Duplicate" $TMP_OUTPUT)
         if [ -z "$ALREADY_OPEN_ERROR" ]; then
             echo -e "Cannot open port $2 for SG $1, aborting\n$(cat $TMP_OUTPUT)"
+            exit 203
         fi
     fi
 }

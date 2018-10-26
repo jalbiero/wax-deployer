@@ -142,14 +142,13 @@ function wax_download_component() {
     cd $WAX_WORK_DIR
 
     # Do not download the component (directory) if already exist
-    local COMPONENT_DOWNLOADED=false
     if [ ! -d "$1" ]; then
         wax_abort_if_fail "git clone ssh://git@monica.mcmxi.services:2259/wax/$1.git"
-        COMPONENT_DOWNLOADED=true
     else
         echo "Component '$1' already exists, download skipped"
     fi
 
+    # Get compoent version
     wax_get_component_version $1
     
     if [ -z $RESULT ]; then
@@ -163,14 +162,8 @@ function wax_download_component() {
         fi
     fi    
 
-
     cd "$1"
     wax_abort_if_fail "git checkout $RESULT"
-
-    # If the component was not downloaded, a pull is a good idea
-    if [ "$COMPONENT_DOWNLOADED" == false ]; then
-        wax_abort_if_fail "git pull"
-    fi
 
     popd > /dev/null
     echo ""

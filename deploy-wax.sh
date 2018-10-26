@@ -286,15 +286,14 @@ function deploy_oracle() {
     local METRICS_PORT
     read -e -i "8125" -p "Metrics port (ENTER to accept the suggested): " METRICS_PORT
 
-    local CONNECT_API_LB
-    aws_get_load_balancer_attribute "wax-connect-api-lb-$WAX_ENV_POSTFIX_FULL" "DNSName"
-    read -e -i "$RESULT" -p "Connect API Load Balancer address (ENTER to accept the suggested): " CONNECT_API_LB
-
     local INFLUX_DB
     read -e -i "telegraf" -p "Influx database (ENTER to accept the suggested): " INFLUX_DB
 
     local INFLUX_HOST
     read -e -i "localhost" -p "Influx hostname (ENTER to accept the suggested): " INFLUX_HOST
+
+    aws_get_load_balancer_attribute "wax-connect-api-lb-$WAX_ENV_POSTFIX_FULL" "DNSName"
+    local CONNECT_API_LB=$RESULT
 
     wax_abort_if_fail \
         "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
@@ -321,14 +320,11 @@ function deploy_rng_contract() {
     wax_get_private_key "wax.rng" $WAX_KEYS_FILE_PATH
     wax_abort_if_fail "cleos wallet import $RESULT > /dev/null"
 
-    local CONNECT_PUBLIC_IP
-    aws_get_instance_attribute "wax-connect-api-node-0-$WAX_ENV_POSTFIX_FULL" "PublicIpAddress"
-    read -e -i "$RESULT" -p "WAX Connect public IP (ENTER to accept the suggested): " CONNECT_PUBLIC_IP
-
     # Open temporarily the port 8888 for my IP in order to deploy the contract
     aws_open_port "wax-connect-api-sg-$WAX_ENV_POSTFIX_FULL" "8888"
 
-    export NODEOS_URL=http://$CONNECT_PUBLIC_IP:8888
+    aws_get_instance_attribute "wax-connect-api-node-0-$WAX_ENV_POSTFIX_FULL" "PublicIpAddress"
+    export NODEOS_URL=http://$RESULT:8888
 
     # TODO Use (and test) the new task 'dockerized-deploy'
     # TODO Add docker to the script requirements when dockerized-deploy will be used
@@ -343,6 +339,19 @@ function deploy_rng_contract() {
         rm -R ~/eosio-wallet
         mv $BACKUP_WALLET ~/eosio-wallet
     fi
+
+# FUTURE Implementation for dockerized deploy
+#     wax_get_private_key "wax.rng" $WAX_KEYS_FILE_PATH
+#     local RNG_PRIV_KEY=$RESULT
+#
+#     # Open temporarily the port 8888 for my IP in order to deploy the contract
+#     aws_open_port "wax-connect-api-sg-$WAX_ENV_POSTFIX_FULL" "8888"
+#
+#     aws_get_instance_attribute "wax-connect-api-node-0-$WAX_ENV_POSTFIX_FULL" "PublicIpAddress"
+#     export NODEOS_URL=http://$RESULT:8888
+#
+#     wax_abort_if_fail "make dockerized-deploy RNG_PRIV_KEY=$RNG_PRIV_KEY NODEOS_URL=$NODEOS_URL"
+
 }
 
 
@@ -381,9 +390,12 @@ function deploy_cases()
     # Open temporarily the port 80 for my IP in order to deploy the cases
     aws_open_port "wax-connect-api-sg-$WAX_ENV_POSTFIX_FULL" "80"
 
+    aws_get_instance_attribute "wax-connect-api-node-0-$WAX_ENV_POSTFIX_FULL" "PublicIpAddress"
+    local CONNECT_PUBLIC_IP=$RESULT
+
     # TODO Check why the full path is necessary (it wasn't at rng project)
     for CASE_FILE in $WAX_WORK_DIR/case-tools/cases/definitions/*.csv; do
-        wax_abort_if_fail "npm run deploy -- '$CASE_FILE' http://$CONNECT_PUBLIC_IP 0"
+        wax_abort_if_fail "npm run deploy -- -c '$CASE_FILE' -w http://$CONNECT_PUBLIC_IP -l 0"
     done
 
     aws_close_port "wax-connect-api-sg-$WAX_ENV_POSTFIX_FULL" "80"
