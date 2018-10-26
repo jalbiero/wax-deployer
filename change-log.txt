@@ -4,6 +4,12 @@
 
 
 --------------------------------------------------------------------------------
+Version 2.1.0, 16/10/2018
+ - Support for new case-tools deployment (from v1.0.0)
+ - Update version list file with supported/tested versions
+
+
+--------------------------------------------------------------------------------
 Version 2.0.0, 16/10/2018
   - New schema version (3 digits) based on semantic versioning (see
     https://semver.org/)
