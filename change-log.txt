@@ -7,6 +7,7 @@
 Version 2.1.0, 16/10/2018
  - Support for new case-tools deployment (from v1.0.0)
  - Update version list file with supported/tested versions
+ - Several minor fixes and refactorings
 
 
 --------------------------------------------------------------------------------
