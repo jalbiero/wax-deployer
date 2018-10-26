@@ -171,7 +171,7 @@ function deploy_testnet() {
         WAX_KEYS_FILE_PATH=$(pwd)/ansible/roles/eos-node/templates/keys.csv
     else
         # Use the provided keys file
-        cp -i $WAX_KEYS_FILE_PATH $(pwd)/ansible/roles/eos-node/templates/keys.csv
+        wax_abort_if_fail "cp -i $WAX_KEYS_FILE_PATH $(pwd)/ansible/roles/eos-node/templates/keys.csv"
     fi
 
     # "production" is a special case
