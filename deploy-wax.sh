@@ -32,7 +32,7 @@
 #        code is prepared for that.
 #
 
-SCRIPT_VERSION="2.0.0"
+SCRIPT_VERSION="2.1.2"
 
 . ./modules/wax_helpers.sh
 . ./modules/aws_helpers.sh
@@ -511,6 +511,8 @@ else
     # TODO Add checking for that
 
     # Relaunch this instance, but logging everything to an installation file
+    # TODO Ubuntu uses mawk which doesn't support strftime :-(
+    #$0 --internal-start 2>&1 | awk '{ print strftime("%c: "), $0; fflush(); }' | tee -a ./deploy-wax-installation.log
     $0 --internal-start 2>&1 | tee -a ./deploy-wax-installation.log
 fi
 
