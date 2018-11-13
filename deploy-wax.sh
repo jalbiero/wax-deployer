@@ -32,7 +32,7 @@
 #        code is prepared for that.
 #
 
-SCRIPT_VERSION="2.1.2"
+SCRIPT_VERSION="2.2.0"
 
 . ./modules/wax_helpers.sh
 . ./modules/aws_helpers.sh
@@ -68,7 +68,7 @@ function get_environment() {
         echo "Environment postfix already set to: $WAX_ENV_POSTFIX"
     fi
 
-    # Postfix must be lowercase (for wax-rng-oracle) (be aware that the  following
+    # Postfix must be lowercase (for wax-rng-oracle) (be aware that the following
     # way to convert to lowercase is not compatible with sh, only with bash)
     WAX_ENV_POSTFIX=${WAX_ENV_POSTFIX,,}
 
@@ -103,7 +103,7 @@ function check_requirements() {
         echo "WARNING:"
         echo "Your node.js installation ($(which node)) is not recommended"
         echo "Please use https://github.com/creationix/nvm#install-script to install it"
-        #exit 10   # < just for now a simple warning
+        #exit 9   # < just for now a simple warning
     fi
 
     wax_check_command npm
@@ -295,8 +295,20 @@ function deploy_oracle() {
     aws_get_load_balancer_attribute "wax-connect-api-lb-$WAX_ENV_POSTFIX_FULL" "DNSName"
     local CONNECT_API_LB=$RESULT
 
+    # TODO Get IPs from all nodes, wax-connect-api now support a list of IP in "eos_peer_ip"
+    local NODE_NAME="eos-node-0-$WAX_ENV_POSTFIX_FULL"
+    aws_get_instance_attribute $NODE_NAME  "PrivateIpAddress"
+
+    if [ -z $RESULT ]; then
+        echo "Cannot find '$NODE_NAME' instance on AWS."
+        echo "You must deploy the testnet before trying to deploy the wax-rng-oracle"
+        exit 13
+    else
+        local EOS_PEER_IP=$RESULT
+    fi
+
     wax_abort_if_fail \
-        "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST"
+        "make deploy env_postfix=$WAX_ENV_POSTFIX wax_api_url=http://$CONNECT_API_LB metrics_host=$METRICS_HOST metrics_port=$METRICS_PORT influxdb_database=$INFLUX_DB influxdb_host=$INFLUX_HOST eos_peer_ip=$EOS_PEER_IP"
 }
 
 
@@ -320,7 +332,7 @@ function deploy_rng_contract() {
     wax_get_private_key "wax.rng" $WAX_KEYS_FILE_PATH
     wax_abort_if_fail "cleos wallet import $RESULT > /dev/null"
 
-    # Open temporarily the port 8888 for my IP in order to deploy the contract
+    # Open the port 8888 temporarily for my IP in order to deploy the contract
     aws_open_port "wax-connect-api-sg-$WAX_ENV_POSTFIX_FULL" "8888"
 
     aws_get_instance_attribute "wax-connect-api-node-0-$WAX_ENV_POSTFIX_FULL" "PublicIpAddress"
@@ -344,7 +356,7 @@ function deploy_rng_contract() {
 #     wax_get_private_key "wax.rng" $WAX_KEYS_FILE_PATH
 #     local RNG_PRIV_KEY=$RESULT
 #
-#     # Open temporarily the port 8888 for my IP in order to deploy the contract
+#     # Open the port 8888 temporarily for my IP in order to deploy the contract
 #     aws_open_port "wax-connect-api-sg-$WAX_ENV_POSTFIX_FULL" "8888"
 #
 #     aws_get_instance_attribute "wax-connect-api-node-0-$WAX_ENV_POSTFIX_FULL" "PublicIpAddress"
@@ -369,7 +381,7 @@ function deploy_explorer()
 
     if [ -z $RESULT ]; then
         echo "Cannot find '$NODE_NAME' instance on AWS."
-        echo "You must deploy connect-api before trying to deploy the explorer"
+        echo "You must deploy wax-connect-api before trying to deploy the explorer"
         exit 10
     else
         local CONNECT_IP=$RESULT
